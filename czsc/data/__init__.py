@@ -9,6 +9,7 @@ describe: 数据工具
 from .ts_cache import TsDataCache
 from . import ts
 from .base import *
+from .convert import *
 
 
 def get_symbols(dc: TsDataCache, step):

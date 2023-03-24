@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # my gitignore
-stockS_data/
-logs/
+Sequoia/stockS_data/
+Sequoia/logs/

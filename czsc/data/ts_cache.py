@@ -58,7 +58,7 @@ class TsDataCache:
         :param sdt: 缓存开始时间
         :param edt: 缓存结束时间
         """
-        self.date_fmt = "%Y%m%d"
+        self.date_fmt = "%Y-%m-%d"  # 原格式为："%Y%m%d"
         self.verbose = envs.get_verbose()
         self.refresh = refresh
         self.sdt = pd.to_datetime(sdt).strftime(self.date_fmt)
@@ -217,6 +217,74 @@ class TsDataCache:
         if raw_bar:
             kline = format_kline(kline, freq=self.freq_map[freq])
         return kline
+    
+    def pro_bar_plus(self, ts_code, start_date=None, end_date=None, freq='D', asset="E", adj='qfq', raw_bar=True, API='ts'):
+        """获取日线以上数据
+
+        https://tushare.pro/document/2?doc_id=109
+
+        :param ts_code:
+        :param start_date:
+        :param end_date:
+        :param freq:
+        :param asset: 资产类别：E股票 I沪深指数 C数字货币 FT期货 FD基金 O期权 CB可转债（v1.2.39），默认E
+        :param adj: 资产类别：E股票 I沪深指数 C数字货币 FT期货 FD基金 O期权 CB可转债（v1.2.39），默认E
+        :param raw_bar:
+        :return:
+        """
+        cache_path = self.api_path_map['pro_bar']
+        file_cache = os.path.join(cache_path, f"pro_bar_{ts_code}#{asset}_{self.sdt}_{freq}_{adj}.feather")
+
+        if not self.refresh and os.path.exists(file_cache):
+            kline = pd.read_feather(file_cache)
+            if self.verbose:
+                print(f"pro_bar: read cache {file_cache}")
+        else:
+            
+            if API == 'ts':
+                start_date_ = (pd.to_datetime(self.sdt) - timedelta(days=1000)).strftime('%Y%m%d')
+                kline = ts.pro_bar(ts_code=ts_code, asset=asset, adj=adj, freq=freq,
+                                start_date=start_date_, end_date=self.edt)
+            elif API == 'bao':
+                import baostock as bs
+                from czsc.data import convert_bao_to_ts
+
+                bs.login()
+                start_date_ = (pd.to_datetime(self.sdt) - timedelta(days=1000)).strftime('%Y-%m-%d')
+                end_date_ = pd.to_datetime(self.edt).strftime('%Y-%m-%d')
+                rs = bs.query_history_k_data_plus(ts_code,
+                    "date,code,open,high,low,close,preclose,volume,amount,adjustflag,turn,tradestatus,pctChg,isST",
+                    start_date=self.sdt, end_date=end_date_,
+                    frequency="d", adjustflag="3")
+
+
+                data_list = []
+                while (rs.error_code == '0') & rs.next():
+                    data_list.append(rs.get_row_data())
+                result = pd.DataFrame(data_list, columns=rs.fields)
+                kline = convert_bao_to_ts(result)
+                bs.logout()
+            else:
+                raise ValueError('API must be ts or bao')
+          
+
+
+            kline = kline.sort_values('trade_date', ignore_index=True)
+            kline['trade_date'] = pd.to_datetime(kline['trade_date'], format=self.date_fmt)
+            kline['dt'] = kline['trade_date']
+            kline['avg_price'] = kline['amount'] / kline['vol']
+            update_bars_return(kline)
+            kline.to_feather(file_cache)
+
+        if start_date:
+            kline = kline[kline['trade_date'] >= pd.to_datetime(start_date)]
+        if end_date:
+            kline = kline[kline['trade_date'] <= pd.to_datetime(end_date)]
+
+        kline.reset_index(drop=True, inplace=True)
+        if raw_bar:
+            kline = format_kline(kline, freq=self.freq_map[freq])
+        return kline    
 
     def pro_bar_minutes(self, ts_code, sdt=None, edt=None, freq='60min', asset="E", adj=None, raw_bar=True):
         """获取分钟线
