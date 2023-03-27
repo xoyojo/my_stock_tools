@@ -45,7 +45,7 @@ def run(stocks,start_date="20200201"):
     #         stocks_data = pickle.load(f)
     # else:
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
-        future_to_stock = {executor.submit(fetch, stock, start_date): stock for stock in stocks}
+        future_to_stock = {executor.submit(fetch, stock): stock for stock in stocks}
         for future in concurrent.futures.as_completed(future_to_stock):
             stock = future_to_stock[future]
             try:
