@@ -131,3 +131,4 @@ dmypy.json
 # my gitignore
 Sequoia/stockS_data/
 Sequoia/logs/
+temp_data/
