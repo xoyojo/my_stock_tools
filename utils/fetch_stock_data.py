@@ -41,10 +41,15 @@ def fetch_one_stock_hist_from_ak(stock):
         return False
 
     if data is None or data.empty:
-        logging.debug("股票：" + stock + " 没有数据，略过...")
+        logging.debug(f'股票:{stock},没有数据，略过...')
         return
+   
+    #change data columns name
+    data.columns = ['date','open', 'high', 'low', 'close', 'vol', 'amount','swing', 'pct_chg','change', 'turn_over']
+    data = data.set_index('date')
 
-    data['p_change'] = tl.ROC(data['收盘'], 1)
+
+
 
     return data
 
@@ -54,7 +59,7 @@ def fetch_multi_stock_hist_from_ak(
         period="daily",
         start_date="20200201",
         end_date=datetime.datetime.now().strftime('%Y%m%d'),
-        adjust="qfq"):
+        adjust=""):
     """
     返回沪深京 A 股指定股票、指定周期和指定日期间的历史行情日频率数据
     Args: stocks 
@@ -77,12 +82,10 @@ def fetch_multi_stock_hist_from_ak(
             try:
                 data = future.result()
                 if data is not None:
-                    data = data.astype({'成交量': 'double'})
+                    data = data.astype({'vol': 'double'})
                     stocks_data[stock] = data
             except Exception as exc:
-                print('%s(%r) generated an exception: %s' %
-                      (stock[1], stock[0], exc))
-
+                print(f'{stock[1]}({stock[1]}) generated an exception: {exc}')
     return stocks_data
 
 
