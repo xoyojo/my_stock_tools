@@ -9,3 +9,5 @@ logger.addHandler(hdr)
 formatter = logging.Formatter(
     '[%(asctime)s] %(name)s:%(levelname)s: %(message)s')
 hdr.setFormatter(formatter)
+
+# logging.FileHandler('',)
