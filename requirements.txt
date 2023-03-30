@@ -24,3 +24,7 @@ tqdm==4.65.0
 tushare==1.2.89
 wxpusher==2.2.0
 xlrd==1.2.0
+
+# TA_Lib==0.4.24
+# scikit_learn
+# pyarrow

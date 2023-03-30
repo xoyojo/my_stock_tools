@@ -86,8 +86,7 @@ def fetch_multi_stock_hist_from_ak(
                     data = data.astype({'vol': 'double'})
                     stocks_data[stock] = data
             except TypeError as exc:
-                logger.info(
-                    f'{stock}) is None.  exception: {exc}')
+                logger.info(f'{stock}) is None.  exception: {exc}')
             except Exception as exc:
                 logger.info(
                     f'{stock}) in future generated an exception: {exc}')
@@ -114,13 +113,13 @@ def fetch_one_quarter_bb_from_ak(date):
         data = ak.stock_yjbb_em(date=date)
     except TypeError as exc:
         logger.info(
-            'fetch_one_quarter_bb_from_ak at %s generated an exception: %s', date, exc
-        )
+            'fetch_one_quarter_bb_from_ak at %s generated an exception: %s',
+            date, exc)
         return None
     except Exception as exc:
         logger.info(
-            'fetch_one_quarter_bb_from_ak at %s generated an exception: %s', date, exc
-        )
+            'fetch_one_quarter_bb_from_ak at %s generated an exception: %s',
+            date, exc)
         return None
     return data
 
@@ -151,8 +150,8 @@ def fetch_all_quarter_bb_from_ak(date_list=date_list):
                     all_bb = concat([all_bb, data], axis=0)
             except Exception as exc:
                 logger.info(
-                    'fetch_all_quarter_bb_from_ak at %s generated an exception: %s', date, exc
-                )
+                    'fetch_all_quarter_bb_from_ak at %s generated an exception: %s',
+                    date, exc)
 
     return all_bb
 
@@ -175,24 +174,28 @@ if __name__ == "__main__":
 
     quarters = ["0331", "0630", "0930", "1231"]
     quarter_data = [
-        str(year) + quarter for quarter in quarters for year in range(2015, 2024)]
+        str(year) + quarter for quarter in quarters
+        for year in range(2015, 2024)
+    ]
 
     all_bb_df = fetch_all_quarter_bb_from_ak(date_list=quarter_data)
 
     with open('temp_data/all_yjbb.pkl', 'wb') as f:
         pickle.dump(all_bb_df, f)
 
-    # start_date = "20210101"
-    # # 获取沪深 A 股列表 http://quote.eastmoney.com/center/gridlist.html#hs_a_board
-    # all_stocks_df = ak.stock_zh_a_spot_em()
-    # all_indexs_df = ak.index_stock_info()
-    # # List [('代码', '名称')]
-    # all_stocks_list = [tuple(x) for x in all_stocks_df[['代码', '名称']].values]
-    # all_indexs_list = [('zs.'+x[0], x[1])
-    #                    for x in all_indexs_df[['index_code', 'display_name']].values]
+    start_date = "20210101"
+    # 获取沪深 A 股列表 http://quote.eastmoney.com/center/gridlist.html#hs_a_board
+    all_stocks_df = ak.stock_zh_a_spot_em()
+    all_indexs_df = ak.index_stock_info()
+    # List [('代码', '名称')]
+    all_stocks_list = [tuple(x) for x in all_stocks_df[['代码', '名称']].values]
+    all_indexs_list = [
+        ('zs.' + x[0], x[1])
+        for x in all_indexs_df[['index_code', 'display_name']].values
+    ]
 
-    # all_stocks_index_list = all_stocks_list + all_indexs_list
-    # df2 = fetch_multi_stock_hist_from_ak(
-    #     stocks=all_stocks_index_list, start_date=start_date)
-    # with open('temp_data/stock_data_20210701_20230328.pkl', 'wb') as f:
-    #     pickle.dump(df2, f)
+    all_stocks_index_list = all_stocks_list + all_indexs_list
+    df2 = fetch_multi_stock_hist_from_ak(stocks=all_stocks_index_list,
+                                         start_date=start_date)
+    with open('temp_data/stock_data_20210701_20230328.pkl', 'wb') as f:
+        pickle.dump(df2, f)
