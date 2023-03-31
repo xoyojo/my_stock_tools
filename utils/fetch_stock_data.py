@@ -50,7 +50,7 @@ def fetch_one_stock_hist_from_ak(stock):
         'date', 'open', 'close', 'high', 'low', 'vol', 'amount', 'swing',
         'pct_chg', 'change', 'turn_over'
     ]
-    data = data.set_index('date')
+    # data = data.set_index('date')
 
     return data
 
