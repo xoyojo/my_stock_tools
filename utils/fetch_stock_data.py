@@ -42,6 +42,7 @@ def fetch_one_stock_hist_from_ak(stock):
                                       start_date=stock[2],
                                       end_date=stock[3],
                                       adjust=stock[4])
+
     except Exception as exc:
         print(f'request failed: unable to get {stock[0]} data: {exc}')
         return None
@@ -163,39 +164,39 @@ if __name__ == "__main__":
     # fetch_all_quarter_bb_from_ak(
     #     date_list=["20190331", "20200331", "19910331"])
 
-    # stock_argument = (('600519', '贵州茅台'), "daily", "20200201", "20200228", "")
-    # fetch_one_stock_hist_from_ak(stock_argument)
+    stock_argument = (('600519', ''), "daily", "20200201", "20200228", "")
+    res = fetch_one_stock_hist_from_ak(stock_argument)
     # stocks_list = [('600519', '贵州茅台'), ('600020', '中原高速')]
     # res = res_stocks_data = fetch_multi_stock_hist_from_ak(
     #     stocks_list, start_date="20200201", end_date="20200228")
-    # print(res)
+    print(res)
 
-    logger.info('start')
+    # logger.info('start')
 
-    quarters = ["0331", "0630", "0930", "1231"]
-    quarter_data = [
-        str(year) + quarter for quarter in quarters
-        for year in range(2015, 2024)
-    ]
+    # quarters = ["0331", "0630", "0930", "1231"]
+    # quarter_data = [
+    #     str(year) + quarter for quarter in quarters
+    #     for year in range(2015, 2024)
+    # ]
 
-    all_bb_df = fetch_all_quarter_bb_from_ak(date_list=quarter_data)
+    # all_bb_df = fetch_all_quarter_bb_from_ak(date_list=quarter_data)
 
-    with open('temp_data/all_yjbb.pkl', 'wb') as f:
-        pickle.dump(all_bb_df, f)
+    # with open('temp_data/all_yjbb.pkl', 'wb') as f:
+    #     pickle.dump(all_bb_df, f)
 
-    start_date = "20210101"
-    # 获取沪深 A 股列表 http://quote.eastmoney.com/center/gridlist.html#hs_a_board
-    all_stocks_df = ak.stock_zh_a_spot_em()
-    all_indexs_df = ak.index_stock_info()
-    # List [('代码', '名称')]
-    all_stocks_list = [tuple(x) for x in all_stocks_df[['代码', '名称']].values]
-    all_indexs_list = [
-        ('zs.' + x[0], x[1])
-        for x in all_indexs_df[['index_code', 'display_name']].values
-    ]
+    # start_date = "20210101"
+    # # 获取沪深 A 股列表 http://quote.eastmoney.com/center/gridlist.html#hs_a_board
+    # all_stocks_df = ak.stock_zh_a_spot_em()
+    # all_indexs_df = ak.index_stock_info()
+    # # List [('代码', '名称')]
+    # all_stocks_list = [tuple(x) for x in all_stocks_df[['代码', '名称']].values]
+    # all_indexs_list = [
+    #     ('zs.' + x[0], x[1])
+    #     for x in all_indexs_df[['index_code', 'display_name']].values
+    # ]
 
-    all_stocks_index_list = all_stocks_list + all_indexs_list
-    df2 = fetch_multi_stock_hist_from_ak(stocks=all_stocks_index_list,
-                                         start_date=start_date)
-    with open('temp_data/stock_data_20210701_20230328.pkl', 'wb') as f:
-        pickle.dump(df2, f)
+    # all_stocks_index_list = all_stocks_list + all_indexs_list
+    # df2 = fetch_multi_stock_hist_from_ak(stocks=all_stocks_index_list,
+    #                                      start_date=start_date)
+    # with open('temp_data/stock_data_20210701_20230328.pkl', 'wb') as f:
+    #     pickle.dump(df2, f)
