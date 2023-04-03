@@ -1,13 +1,15 @@
 # -*- encoding: UTF-8 -*-
-import yaml
 import os
+import yaml
 import akshare as ak
 
 
 def init():
+    """初始化配置文件"""
     global config
     global top_list
-    root_dir = os.path.dirname(os.path.abspath(__file__))  # This is your Project Root
+    root_dir = os.path.dirname(
+        os.path.abspath(__file__))  # This is your Project Root
     config_file = os.path.join(root_dir, 'config.yaml')
     with open(config_file, 'r') as file:
         config = yaml.safe_load(file)

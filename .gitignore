@@ -132,3 +132,4 @@ dmypy.json
 Sequoia/stockS_data/
 Sequoia/logs/
 temp_data/
+data_dump/
