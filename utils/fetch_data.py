@@ -20,42 +20,6 @@ import pandas as pd
 from log import logger
 
 
-def fetch_one_stock_hist_from_ak(stock):
-    """
-    返回某只股票、指定周期和指定日期间的历史行情日频率数据
-    Args: stock
-        type:tunple ( (stock_code,stock_name), period, start_date, end_date, adjust)
-    Return: stock_data
-        type:daraframe
-    """
-
-    # stock_zh_a_hist：返回单只股票的历史行情日频率数据， https://www.akshare.xyz/data/stock/stock.html#id20
-    try:
-        if 'zs' in stock[0][0]:
-            data = ak.index_zh_a_hist(symbol=stock[0][0][3:],
-                                      period=stock[1],
-                                      start_date=stock[2],
-                                      end_date=stock[3])
-        else:
-            data = ak.stock_zh_a_hist(symbol=stock[0][0],
-                                      period=stock[1],
-                                      start_date=stock[2],
-                                      end_date=stock[3],
-                                      adjust=stock[4])
-
-    except Exception as exc:
-        print(f'request failed: unable to get {stock[0]} data: {exc}')
-        return None
-
-    data.columns = [
-        'date', 'open', 'close', 'high', 'low', 'vol', 'amount', 'swing',
-        'pct_chg', 'change', 'turn_over'
-    ]
-    # data = data.set_index('date')
-
-    return data
-
-
 def fetch_hist(
         symbol='zs.000001',
         period="daily",
@@ -114,18 +78,22 @@ def fetch_hist_multi(
         start_date=(datetime.datetime.now() -
                     datetime.timedelta(days=365 * 3)).strftime('%Y%m%d'),
         end_date=datetime.datetime.now().strftime('%Y%m%d'),
-        adjust=""):
+        adjust="qfq",
+        to_loacl=True):
     """
     返回沪深京 A 股指定股票、指定周期和指定日期间的历史行情日频率数据
     Args:   symbol_list
                 type:list e.g. ['600519', 'zs.000001', ...] where zs represents the index
             adjust: qfq, hfq, ''
+            to_loacl: 是否保存到本地 路径为data_dump/stock-index-yyyymmdd-yyyymmdd.pkl
     Return: datas
             type:dict 
                 keys: e.g. '600519' ,'zs.000001'; 
                 values: daraframe
     """
     datas = {}
+    if symbol_list == []:
+        symbol_list = fetch_symbol(symbol='all')
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
         future_to_stock = {
@@ -149,13 +117,28 @@ def fetch_hist_multi(
                 print(f'({symbol}) return None.  exception: {exc}')
             except Exception as exc:
                 print(f'({symbol}) in future generated an exception: {exc}')
+
+    if to_loacl:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        file_name = os.path.abspath(
+            os.path.join(current_dir, os.pardir, 'data_dump',
+                         'stock-index-' + start_date + '-' + end_date + '.pkl'))
+        with open(file_name, 'wb') as f:
+            pickle.dump(res, f)
+
     return datas
 
 
 def fetch_symbol(symbol='all'):
     """
-        返回沪深京所有股票和指数的代码列表
-        """
+        返回(1)沪深京所有股票和指数的代码列表(2)股票或指数的名称
+        Args:   symbol
+                    type:str e.g. 'all' 'zs.000001' '600519' ...
+                    symbol = all, return all stocks and index symbol list
+                    symbol = zs.000001,etc, return stock or index name
+        Return: res
+                    type:list or str
+    """
     all_stocks_df = ak.stock_zh_a_spot_em()
     all_indexs_df = ak.index_stock_info()
     if symbol == 'all':
@@ -197,21 +180,32 @@ def fetch_report(date):
     except Exception as exc:
         logger.info('fetch_report at %s generated an exception: %s', date, exc)
         return None
+
+    date_choice = ["0331", "0630", "0930", "1231"]
+    quarter = date_choice.index(date[-4:]) + 1
+    report['year'] = date[:4]
+    report['quarter'] = quarter
+    report['date_choice'] = date
+
     return report
 
 
 def fetch_report_multi(start_year, end_year, to_local=True):
     """
     返回沪深京所有股票季度业绩报表数据
+    Args: start_year end_year 
+            type:str e.g. '2019' '2020'
+          to_local: 是否保存到本地 路径为data_dump/report-yyyymmdd-yyyymmdd.pkl
     Return: reports
-        type:dataframe  https://www.akshare.xyz/data/stock/stock.html#id136
+        type:dataframe 
     """
     reports = pd.DataFrame()
     quarters = ["0331", "0630", "0930", "1231"]
     date_list = [
-        str(i) + q for i in range(int(start_year), int(end_year))
+        str(i) + q for i in range(int(start_year), int(end_year)+1)
         for q in quarters
     ]
+    print(date_list)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
         future_to_one_quarters = {
@@ -237,72 +231,22 @@ def fetch_report_multi(start_year, end_year, to_local=True):
                 'reports-' + str(start_year) + '-' + str(end_year) + '.pkl'))
 
         with open(file_name, 'wb') as f:
-            pickle.dump(res, f)
+            pickle.dump(reports, f)
 
     return reports
 
 
-def fetch_hist_multi_to_loc(
-        symbol_list=[],
-        start_date=(datetime.datetime.now() -
-                    datetime.timedelta(days=365 * 3)).strftime('%Y%m%d'),
-        end_date=datetime.datetime.now().strftime('%Y%m%d'),
-        period='daily',
-        adjust='qfq'):
-    """
-    返回沪深京所有股票指定周期和指定日期间的历史行情日频率数据
-    """
-    if symbol_list == []:
-        symbol_list = fetch_symbol(symbol='all')
-
-    res = fetch_hist_multi(symbol_list=symbol_list,
-                           start_date=start_date,
-                           end_date=end_date,
-                           period=period,
-                           adjust=adjust)
+def get_hist(filename):
+    """读取本地历史数据"""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     file_name = os.path.abspath(
-        os.path.join(current_dir, os.pardir, 'data_dump',
-                     'all-' + start_date + '-' + end_date + '.pkl'))
-
-    with open(file_name, 'wb') as f:
-        pickle.dump(res, f)
+        os.path.join(current_dir, os.pardir, 'data_dump', filename+'.pkl'))
+    with open(file_name, 'rb') as f:
+        data = pickle.load(f)
+    return data
 
 
 if __name__ == "__main__":
-
-    # fetch_one_quarter_bb_from_ak("19910331")
-    # fetch_one_quarter_bb_from_ak("19990331")
-    # fetch_all_quarter_bb_from_ak(
-    #     date_list=["20190331", "20200331", "19910331"])
-
-    # stock_argument = (('600519', ''), "daily", "20200201", "20200228", "")
-    # res = fetch_one_stock_hist_from_ak(stock_argument)
-    # stocks_list = [('600519', '贵州茅台'), ('600020', '中原高速')]
-    # res = res_stocks_data = fetch_multi_stock_hist_from_ak(
-    #     stocks_list, start_date="20200201", end_date="20200228")
-    # print(res)
-
-    # logger.info('start')
-
-    # quarters = ["0331", "0630", "0930", "1231"]
-    # quarter_data = [
-    #     str(year) + quarter for quarter in quarters
-    #     for year in range(2015, 2024)
-    # ]
-
-    # all_bb_df = fetch_all_quarter_bb_from_ak(date_list=quarter_data)
-
-    # with open('temp_data/all_yjbb.pkl', 'wb') as f:
-    #     pickle.dump(all_bb_df, f)
-
-    # start_date = "20210101"
-    # # 获取沪深 A 股列表 http://quote.eastmoney.com/center/gridlist.html#hs_a_board
-
-    # df2 = fetch_multi_stock_hist_from_ak(stocks=all_stocks_index_list,
-    #                                      start_date=start_date)
-    # with open('temp_data/stock_data_20210701_20230328.pkl', 'wb') as f:
-    #     pickle.dump(df2, f)
 
     print('--------test fetch_hist--------')
     stock_data = fetch_hist('600519')
@@ -328,9 +272,15 @@ if __name__ == "__main__":
     print('--------test fetch_report--------')
     assert fetch_report("19890331") is None
     assert fetch_report("19990331") is not None
+    # print(fetch_report("19990331"))
+    # print(fetch_report("20000630"))
+    # print(fetch_report("20050930"))
+    # print(fetch_report("20191231"))
 
     print('--------test fetch_report_multi--------')
-    assert fetch_report_multi(start_year='2020', end_year='2023') is not None
+    # assert fetch_report_multi(start_year='2020', end_year='2023') is not None
+    # all = fetch_report_multi(start_year='2015', end_year='2015')
+    # print(all)
 
-    # print('--------test fetch_hist_all_to_loc--------')
+    print('--------test fetch_hist_all_to_loc--------')
     # fetch_hist_multi_to_loc()
